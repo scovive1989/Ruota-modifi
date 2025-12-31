@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>La Ruota della Fortuna Pro</title>
+    <style>
+        :root {
+            --bg-dark: #1b4332;
+            --accent: #ffeb3b;
+            --sidebar-bg: rgba(255,255,255,0.1);
+        }
+
+        body { 
+            font-family: -apple-system, sans-serif; 
+            margin: 0; background: var(--bg-dark); color: white; 
+            height: 100vh; overflow: hidden;
+        }
+
+        /* LAYOUT A TRE COLONNE PER IPAD */
+        .container {
+            display: grid;
+            grid-template-columns: 250px 1fr 300px;
+            height: 100vh;
+            gap: 10px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* COLONNA SINISTRA: MENU */
+        .sidebar-left {
+            display: flex; flex-direction: column; gap: 15px;
+        }
+
+        /* COLONNA CENTRALE: GIOCO */
+        .main-game {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+
+        /* CORNICE TABELLONE STILE IMMAGINE */
+        .tv-frame {
+            background: #111;
+            padding: 40px;
+            border-radius: 50px;
+            border: 15px solid #333;
+            box-shadow: inset 0 0 50px #000, 0 20px 40px rgba(0,0,0,0.5);
+            margin-bottom: 30px;
+            width: 90%;
+            max-width: 800px;
+        }
+
+        #board { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; }
+        .word { display: flex; gap: 5px; margin-bottom: 10px; }
+
+        .cell { 
+            width: 40px; height: 55px; background: white; border: 2px solid #333;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 28px; font-weight: bold; border-radius: 4px; color: transparent;
+        }
+        .cell.revealed { color: #1b4332 !important; background: var(--accent); }
+        .cell.apostrophe { background: transparent !important; border: none !important; color: white !important; width: 12px; }
+
+        /* COLONNA DESTRA: LISTA CATEGORIE */
+        .sidebar-right {
+            background: white; border-radius: 15px; padding: 15px;
+            color: #333; overflow-y: auto; height: 80vh;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .category-item {
+            padding: 15px; border-bottom: 1px solid #eee;
+            cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+        }
+        .category-item:hover { background: #f9f9f9; }
+
+        /* INPUT E PULSANTI */
+        input { width: 100%; padding: 12px; border-radius: 8px; border: none; margin-bottom: 10px; box-sizing: border-box; }
+        .btn-yellow { background: var(--accent); color: var(--bg-dark); border: none; padding: 15px; border-radius: 10px; font-weight: bold; width: 100%; }
+        .btn-white { background: white; color: #333; border: none; padding: 15px; border-radius: 10px; font-weight: bold; width: 100%; }
+
+        /* TASTIERA IN BASSO */
+        #keyboard { 
+            display: grid; grid-template-columns: repeat(10, 1fr); 
+            gap: 8px; width: 100%; max-width: 700px;
+        }
+        .key { padding: 15px; background: #333; color: white; border: none; border-radius: 5px; font-weight: bold; font-size: 1.1rem; }
+        .key:disabled { opacity: 0.2; }
+
+        h2 { margin: 0 0 10px 0; color: var(--accent); font-size: 1.2rem; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <div class="sidebar-left">
+            <h1 style="color:var(--accent); font-size: 1.4rem;">Ruota della Fortuna</h1>
+            <p style="font-size: 0.8rem; opacity: 0.7;">Benvenuto giocatore</p>
+            <input type="text" id="search-bar" placeholder="Cerca..." oninput="filtra()">
+            <button class="btn-yellow" onclick="location.reload()">Reset Partita</button>
+            <button class="btn-white">Impostazioni</button>
+        </div>
+
+        <div class="main-game">
+            <div id="msg" style="margin-bottom: 15px; font-weight: bold;">Seleziona un livello a destra</div>
+            <div class="tv-frame">
+                <div id="board"></div>
+            </div>
+            <div id="keyboard"></div>
+        </div>
+
+        <div class="sidebar-right">
+            <h2 style="color: #1b4332;">Categorie:</h2>
+            <div id="levels-list"></div>
+        </div>
+
+    </div>
+
+    <script>
+        const database = [
+            { cat: "CINEMA", frase: "L'ULTIMO DEI MOICANI" },
+            { cat: "CUCINA", frase: "L'IMPEPATA DI COZZE" },
+            { cat: "GEOGRAFIA", frase: "L'ETNA" },
+            { cat: "PROVERBI", frase: "L'UNIONE FA LA FORZA" },
+            { cat: "STORIA", frase: "L'ANTICA ROMA" },
+            { cat: "CITTÀ", frase: "L'AQUILA" }
+        ];
+
+        function filtra() {
+            const q = document.getElementById('search-bar').value.toUpperCase();
+            const list = document.getElementById('levels-list');
+            list.innerHTML = "";
+            database.forEach((l, i) => {
+                if(l.cat.includes(q)) {
+                    const div = document.createElement('div');
+                    div.className = "category-item";
+                    div.innerHTML = `<div><b>${l.cat}</b><br><small>Livello ${i+1}</small></div> <span>➔</span>`;
+                    div.onclick = () => avvia(i);
+                    list.appendChild(div);
+                }
+            });
+        }
+
+        function avvia(i) {
+            const dati = database[i];
+            document.getElementById('msg').innerText = "Categoria: " + dati.cat;
+            const b = document.getElementById('board');
+            b.innerHTML = "";
+            
+            dati.frase.split(' ').forEach(p => {
+                const w = document.createElement('div');
+                w.className = 'word';
+                p.split('').forEach(char => {
+                    const c = document.createElement('div');
+                    c.className = 'cell';
+                    c.innerText = char;
+                    c.dataset.letter = char;
+                    if (char === "'") { c.classList.add('apostrophe', 'revealed'); }
+                    w.appendChild(c);
+                });
+                b.appendChild(w);
+            });
+
+            const k = document.getElementById('keyboard');
+            k.innerHTML = "";
+            "QWERTYUIOPASDFGHJKLZXCVBNM".split('').forEach(let => {
+                const btn = document.createElement('button');
+                btn.className = 'key';
+                btn.innerText = let;
+                btn.onclick = function() {
+                    this.disabled = true;
+                    document.querySelectorAll('.cell').forEach(cell => {
+                        if(cell.dataset.letter === let) cell.classList.add('revealed');
+                    });
+                };
+                k.appendChild(btn);
+            });
+        }
+
+        filtra();
+    </script>
+</body>
+</html>
